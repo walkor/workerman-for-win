@@ -368,13 +368,13 @@ class Worker
      */
     protected static function displayUI()
     {
-        echo "\033[1A\n\033[K-----------------------\033[47;30m WORKERMAN \033[0m-----------------------------\n\033[0m";
+        echo "----------------------- WORKERMAN -----------------------------\n";
         echo 'Workerman version:' . Worker::VERSION . "          PHP version:".PHP_VERSION."\n";
-        echo "------------------------\033[47;30m WORKERS \033[0m-------------------------------\n";
-        echo "\033[47;30muser\033[0m",str_pad('', self::$_maxUserNameLength+2-strlen('user')), "\033[47;30mworker\033[0m",str_pad('', self::$_maxWorkerNameLength+2-strlen('worker')), "\033[47;30mlisten\033[0m",str_pad('', self::$_maxSocketNameLength+2-strlen('listen')), "\033[47;30mprocesses\033[0m \033[47;30m","status\033[0m\n";
+        echo "------------------------ WORKERS -------------------------------\n";
+        echo "worker",str_pad('', self::$_maxWorkerNameLength+2-strlen('worker')), "listen",str_pad('', self::$_maxSocketNameLength+2-strlen('listen')), "mprocesses ","status\n";
         foreach(self::$_workers as $worker)
         {
-            echo str_pad($worker->user, self::$_maxUserNameLength+2),str_pad($worker->name, self::$_maxWorkerNameLength+2),str_pad($worker->getSocketName(), self::$_maxSocketNameLength+2), str_pad(' '.$worker->count, 9), " \033[32;40m [OK] \033[0m\n";;
+            echo str_pad($worker->name, self::$_maxWorkerNameLength+2),str_pad($worker->getSocketName(), self::$_maxSocketNameLength+2), str_pad(' '.$worker->count, 9), " [OK] \n";;
         }
         echo "----------------------------------------------------------------\n";
     }
