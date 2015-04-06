@@ -284,6 +284,8 @@ class Worker
      */
     protected static $_startFile = '';
     
+    protected static $_processConnections = array();
+    
     /**
      * 运行所有worker实例
      * @return void
@@ -317,6 +319,8 @@ class Worker
         }
         // 标记状态为启动中
         self::$_status = self::STATUS_STARTING;
+        // 全局事件轮询库
+        self::$globalEvent = new Select();
     }
     
     /**
@@ -350,15 +354,53 @@ class Worker
                 self::$_maxUserNameLength = $user_name_length;
             }
             // 监听端口
-            $worker->listen();
+            if(!defined('GLOBAL_START'))
+            {
+                $worker->listen();
+            }
         }
     }
     
+    /**
+     * 运行所有的worker
+     */
     public static function runAllWorker()
     {
-        foreach(self::$_workers as $worker)
+        if(!defined('GLOBAL_START'))
         {
-            $worker->run();
+            foreach(self::$_workers as $worker)
+            {
+                $worker->run();
+            }
+        }
+        
+        // 加载所有Applications/*/start*.php，以便启动所有服务
+        foreach(glob(__DIR__.'/../Applications/*/start*.php') as $start_file)
+        {
+            self::openProcess($start_file);
+        }
+    }
+    
+    public static function openProcess($start_file)
+    {
+        $handler = popen("php $start_file start ", 'r');
+        if($handler)
+        {
+            $process_connection = new TcpConnection($handler);
+            $process_connection->onMessage = function($process_connection, $data)
+            {
+                echo $data;
+            };
+            $process_connection->onClose = function($process_connection)use($start_file)
+            {
+                echo "process_connection[$start_file] closed\n";
+                self::openProcess($start_file);
+            };
+            self::$_processConnections[$start_file] = $process_connection;
+        }
+        else
+        {
+            throw new \Exception('can not open process $start_file');
         }
     }
     
@@ -371,7 +413,7 @@ class Worker
         echo "----------------------- WORKERMAN -----------------------------\n";
         echo 'Workerman version:' . Worker::VERSION . "          PHP version:".PHP_VERSION."\n";
         echo "------------------------ WORKERS -------------------------------\n";
-        echo "worker",str_pad('', self::$_maxWorkerNameLength+2-strlen('worker')), "listen",str_pad('', self::$_maxSocketNameLength+2-strlen('listen')), "mprocesses ","status\n";
+        echo "worker",str_pad('', self::$_maxWorkerNameLength+2-strlen('worker')), "listen",str_pad('', self::$_maxSocketNameLength+2-strlen('listen')), "processes ","status\n";
         foreach(self::$_workers as $worker)
         {
             echo str_pad($worker->name, self::$_maxWorkerNameLength+2),str_pad($worker->getSocketName(), self::$_maxSocketNameLength+2), str_pad(' '.$worker->count, 9), " [OK] \n";;
@@ -532,28 +574,25 @@ class Worker
         // 设置自动加载根目录
         Autoloader::setRootPath($this->_appInitPath);
         
-        // 如果没有全局事件轮询，则创建一个
-        if(!self::$globalEvent)
+        // 则创建一个全局事件轮询
+        if(extension_loaded('libevent'))
         {
-            if(extension_loaded('libevent'))
+            self::$globalEvent = new Libevent();
+        }
+        else
+        {
+            self::$globalEvent = new Select();
+        }
+        // 监听_mainSocket上的可读事件（客户端连接事件）
+        if($this->_socketName)
+        {
+            if($this->transport !== 'udp')
             {
-                self::$globalEvent = new Libevent();
+                self::$globalEvent->add($this->_mainSocket, EventInterface::EV_READ, array($this, 'acceptConnection'));
             }
             else
             {
-                self::$globalEvent = new Select();
-            }
-            // 监听_mainSocket上的可读事件（客户端连接事件）
-            if($this->_socketName)
-            {
-                if($this->transport !== 'udp')
-                {
-                    self::$globalEvent->add($this->_mainSocket, EventInterface::EV_READ, array($this, 'acceptConnection'));
-                }
-                else
-                {
-                    self::$globalEvent->add($this->_mainSocket,  EventInterface::EV_READ, array($this, 'acceptUdpConnection'));
-                }
+                self::$globalEvent->add($this->_mainSocket,  EventInterface::EV_READ, array($this, 'acceptUdpConnection'));
             }
         }
         
