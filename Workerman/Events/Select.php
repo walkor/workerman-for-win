@@ -222,8 +222,7 @@ class Select implements EventInterface
             $read = $this->_readFds;
             $write = $this->_writeFds;
             // 等待可读或者可写事件
-            @stream_select($read, $write, $e, 0, $this->_selectTimeout);
-            
+            stream_select($read, $write, $e, 0, $this->_selectTimeout);
             // 这些描述符可读，执行对应描述符的读回调函数
             if($read)
             {

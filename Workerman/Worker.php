@@ -1,5 +1,6 @@
 <?php
 namespace Workerman;
+ini_set('display_errors', 'on');
 
 use \Workerman\Events\Libevent;
 use \Workerman\Events\Select;
@@ -284,7 +285,11 @@ class Worker
      */
     protected static $_startFile = '';
     
-    protected static $_processConnections = array();
+    /**
+     * 用来保存子进程句柄（windows）
+     * @var array
+     */
+    protected static $_process = array();
     
     /**
      * 运行所有worker实例
@@ -301,7 +306,9 @@ class Worker
         // 展示启动界面
         self::displayUI();
         // 运行所有的worker
-        self::runAllWorker();
+        self::runAllWorkers();
+        // 监控worker
+        self::monitorWorkers();
     }
     
     /**
@@ -321,6 +328,8 @@ class Worker
         self::$_status = self::STATUS_STARTING;
         // 全局事件轮询库
         self::$globalEvent = new Select();
+        // 
+        Timer::init(self::$globalEvent);
     }
     
     /**
@@ -364,13 +373,14 @@ class Worker
     /**
      * 运行所有的worker
      */
-    public static function runAllWorker()
+    public static function runAllWorkers()
     {
         if(!defined('GLOBAL_START'))
         {
             foreach(self::$_workers as $worker)
             {
                 $worker->run();
+                exit("@@@child exit@@@\n");
             }
         }
         
@@ -381,27 +391,76 @@ class Worker
         }
     }
     
+    /**
+     * 打开一个子进程
+     * @param string $start_file
+     */
     public static function openProcess($start_file)
     {
-        $handler = popen("php $start_file start ", 'r');
-        if($handler)
+        // 保存子进程的输出
+        $start_file = realpath($start_file);
+        $std_file = sys_get_temp_dir() . '/'.str_replace(array('/', "\\", ':'), '_', $start_file).'.out.txt';
+        // 将stdou stderr 重定向到文件
+        $descriptorspec = array(
+                0 => array('pipe', 'a'), // stdin
+                1 => array('file', $std_file, 'w'), // stdout
+                2 => array('file', $std_file, 'w') // stderr
+        );
+        
+        // 保存stdin句柄，用来探测子进程是否关闭
+        $pipes = array();
+        // 打开子进程
+        $process= proc_open("php $start_file start -q", $descriptorspec, $pipes);
+        
+        // 打开stdout stderr 文件句柄
+        $std_handler = fopen($std_file, 'a+');
+        // 非阻塞
+        stream_set_blocking($std_handler, 0);
+        // 定时读取子进程的stdout stderr
+        $timer_id = Timer::add(0.1, function()use($std_handler)
         {
-            $process_connection = new TcpConnection($handler);
-            $process_connection->onMessage = function($process_connection, $data)
-            {
-                echo $data;
-            };
-            $process_connection->onClose = function($process_connection)use($start_file)
-            {
-                echo "process_connection[$start_file] closed\n";
-                self::openProcess($start_file);
-            };
-            self::$_processConnections[$start_file] = $process_connection;
-        }
-        else
+            echo fread($std_handler, 65535);
+        });
+        
+        // 保存子进程句柄
+        self::$_process[$start_file] = array($process, $start_file, $timer_id);
+    }
+    
+    /**
+     * 定时检查子进程是否退出了
+     */
+    protected static function monitorWorkers()
+    {
+        // 定时检查子进程是否退出了
+        Timer::add(0.5, function()
         {
-            throw new \Exception('can not open process $start_file');
-        }
+            foreach(self::$_process as $process_data)
+            {
+                $process = $process_data[0];
+                $start_file = $process_data[1];
+                $timer_id = $process_data[2];
+                $status = proc_get_status($process);
+                if(isset($status['running']))
+                {
+                    // 子进程退出了，重启一个子进程
+                    if(!$status['running'])
+                    {
+                        echo "process $start_file terminated and try to restart\n";
+                        Timer::del($timer_id);
+                        @proc_close($process);
+                        // 重新打开一个子进程
+                        self::openProcess($start_file);
+                    }
+                }
+                else
+                {
+                    echo "proc_get_status fail\n";
+                }
+            }
+        });
+        
+        // 主进程loop
+        self::$globalEvent->loop();
     }
     
     /**
@@ -410,6 +469,12 @@ class Worker
      */
     protected static function displayUI()
     {
+        global $argv;
+        // -q不打印
+        if(isset($argv[2]) && $argv[2] == '-q')
+        {
+            return;
+        }
         echo "----------------------- WORKERMAN -----------------------------\n";
         echo 'Workerman version:' . Worker::VERSION . "          PHP version:".PHP_VERSION."\n";
         echo "------------------------ WORKERS -------------------------------\n";
