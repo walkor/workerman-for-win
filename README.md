@@ -14,3 +14,11 @@ http://doc3.workerman.net/
 
 ## 说明
 此版本可用于windows下开发使用，不建议用在生产环境
+
+## 移植
+### windows到Linux（需要Linux的Workerman版本3.1.0及以上）
+可以直接将Applications下的应用目录拷贝到Linux版本的Applications下直接运行
+
+### Linux到windows
+Linux下的应用需要将Applications/YourApp/start.php拆成多个启动项
+
