@@ -1,6 +1,7 @@
 # workerman-for-win
 workerman-for-win
 ## 运行
+(php>=5.3.3)
 双击start.bat运行
 
 ## 与Linux多进程版本的区别
