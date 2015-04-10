@@ -432,35 +432,37 @@ class Worker
     protected static function monitorWorkers()
     {
         // 定时检查子进程是否退出了
-        Timer::add(0.5, function()
-        {
-            foreach(self::$_process as $process_data)
-            {
-                $process = $process_data[0];
-                $start_file = $process_data[1];
-                $timer_id = $process_data[2];
-                $status = proc_get_status($process);
-                if(isset($status['running']))
-                {
-                    // 子进程退出了，重启一个子进程
-                    if(!$status['running'])
-                    {
-                        echo "process $start_file terminated and try to restart\n";
-                        Timer::del($timer_id);
-                        @proc_close($process);
-                        // 重新打开一个子进程
-                        self::openProcess($start_file);
-                    }
-                }
-                else
-                {
-                    echo "proc_get_status fail\n";
-                }
-            }
-        });
+        Timer::add(0.5, "\\Workerman\\Worker::checkWorkerStatus");
         
         // 主进程loop
         self::$globalEvent->loop();
+    }
+    
+    public static function checkWorkerStat()
+    {
+        foreach(self::$_process as $process_data)
+        {
+            $process = $process_data[0];
+            $start_file = $process_data[1];
+            $timer_id = $process_data[2];
+            $status = proc_get_status($process);
+            if(isset($status['running']))
+            {
+                // 子进程退出了，重启一个子进程
+                if(!$status['running'])
+                {
+                    echo "process $start_file terminated and try to restart\n";
+                    Timer::del($timer_id);
+                    @proc_close($process);
+                    // 重新打开一个子进程
+                    self::openProcess($start_file);
+                }
+            }
+            else
+            {
+                echo "proc_get_status fail\n";
+            }
+        }
     }
     
     /**
