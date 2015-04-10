@@ -438,7 +438,7 @@ class Worker
         self::$globalEvent->loop();
     }
     
-    public static function checkWorkerStat()
+    public static function checkWorkerStatus()
     {
         foreach(self::$_process as $process_data)
         {
