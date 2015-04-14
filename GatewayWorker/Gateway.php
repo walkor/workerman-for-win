@@ -55,6 +55,12 @@ class Gateway extends Worker
     public $pingData = '';
     
     /**
+     * 路由函数
+     * @var callback
+     */
+    public $router = null;
+    
+    /**
      * 保存客户端的所有connection对象
      * @var array
      */
@@ -122,6 +128,8 @@ class Gateway extends Worker
     public function __construct($socket_name, $context_option = array())
     {
         parent::__construct($socket_name, $context_option);
+        
+        $this->router = array("\\GatewayWorker\\Gateway", 'routerRand');
         
         $backrace = debug_backtrace();
         $this->_appInitPath = dirname($backrace[0]['file']);
@@ -219,11 +227,11 @@ class Gateway extends Worker
         $gateway_data['cmd'] = $cmd;
         $gateway_data['body'] = $body;
         $gateway_data['ext_data'] = $connection->session;
-        // 随机选择一个worker处理
-        $key = array_rand($this->_workerConnections);
-        if($key)
+        if($this->_workerConnections)
         {
-            if(false === $this->_workerConnections[$key]->send($gateway_data))
+            // 调用路由函数，选择一个worker把请求转发给它
+            $worker_connection = call_user_func($this->router, $this->_workerConnections, $connection, $cmd, $body);
+            if(false === $worker_connection->send($gateway_data))
             {
                 $msg = "SendBufferToWorker fail. May be the send buffer are overflow";
                 $this->log($msg);
@@ -240,10 +248,23 @@ class Gateway extends Worker
                 $msg = "SendBufferToWorker fail. The connections between Gateway and BusinessWorker are not ready";
                 $this->log($msg);
             }
-            $connection->close();
+            $connection->destroy();
             return false;
         }
         return true;
+    }
+    
+    /**
+     * 随机路由，返回worker connection对象
+     * @param array $worker_connections
+     * @param TcpConnection $client_connection
+     * @param int $cmd
+     * @param mixed $buffer
+     * @return TcpConnection
+     */
+    public static function routerRand($worker_connections, $client_connection, $cmd, $buffer)
+    {
+        return $worker_connections[array_rand($worker_connections)];
     }
     
     /**
@@ -332,7 +353,7 @@ class Gateway extends Worker
     public function onWorkerStart()
     {
         // 分配一个内部通讯端口
-        $this->lanPort = $this->startPort;
+        $this->lanPort = function_exists('posix_getppid') ? $this->startPort - posix_getppid() + posix_getpid() : $this->startPort;
         if($this->lanPort<0 || $this->lanPort >=65535)
         {
             $this->lanPort = rand($this->startPort, 65535);
@@ -407,7 +428,7 @@ class Gateway extends Worker
             case GatewayProtocol::CMD_KICK:
                 if(isset($this->_clientConnections[$data['client_id']]))
                 {
-                    $this->_clientConnections[$data['client_id']]->close();
+                    $this->_clientConnections[$data['client_id']]->destroy();
                 }
                 break;
                 // 广播, Gateway::sendToAll($message, $client_id_array)
@@ -559,7 +580,7 @@ class Gateway extends Worker
             // 上次发送的心跳还没有回复次数大于限定值就断开
             if($this->pingNotResponseLimit > 0 && $connection->pingNotResponseCount >= $this->pingNotResponseLimit)
             {
-                $connection->close();
+                $connection->destroy();
                 continue;
             }
             $connection->pingNotResponseCount++;
