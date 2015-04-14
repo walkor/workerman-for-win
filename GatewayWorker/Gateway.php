@@ -254,7 +254,7 @@ class Gateway extends Worker
      */
     protected function storeClientAddress($global_client_id, $address)
     {
-        if(!Store::instance('gateway')->set('gateway-'.$global_client_id, $address))
+        if(!Store::instance('gateway')->set('client_id-'.$global_client_id, $address))
         {
             $msg = 'storeClientAddress fail.';
             if(get_class(Store::instance('gateway')) == 'Memcached')
@@ -274,7 +274,7 @@ class Gateway extends Worker
      */
     protected function delClientAddress($global_client_id)
     {
-        Store::instance('gateway')->delete('gateway-'.$global_client_id);
+        Store::instance('gateway')->delete('client_id-'.$global_client_id);
     }
     
     /**
@@ -303,7 +303,7 @@ class Gateway extends Worker
      */
     protected function createGlobalClientId()
     {
-        $global_socket_key = 'GLOBAL_SOCKET_ID_KEY';
+        $global_socket_key = 'GLOBAL_CLIENT_ID_KEY';
         $store = Store::instance('gateway');
         $global_client_id = $store->increment($global_socket_key);
         if(!$global_client_id || $global_client_id > 2147483646)
