@@ -2,7 +2,7 @@
 workerman-for-win
 ## 运行
 (php>=5.3.3)
-双击start.bat运行
+双击start.bat运行(需要设置系统php环境变量)
 
 ## 与Linux多进程版本的区别
 1、单进程，也就是说count属性无效  
