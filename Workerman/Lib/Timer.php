@@ -48,7 +48,7 @@ class Timer
         }
         else 
         {
-            pcntl_signal(SIGALRM, array('\Workerman\Lib\Timer', 'signalHandle'), false);
+            echo new Exception("bad timer");
         }
     }
     
@@ -60,7 +60,6 @@ class Timer
     {
         if(!self::$_event)
         {
-            pcntl_alarm(1);
             self::tick();
         }
     }
@@ -86,6 +85,8 @@ class Timer
             return self::$_event->add($time_interval, $persistent ? EventInterface::EV_TIMER : EventInterface::EV_TIMER_ONCE , $func, $args);
         }
         
+        echo new Exception("bad timer");
+        
         if(!is_callable($func))
         {
             echo new Exception("not callable");
@@ -94,7 +95,7 @@ class Timer
         
         if(empty(self::$_tasks))
         {
-            pcntl_alarm(1);
+            
         }
         
         $time_now = time();
@@ -116,7 +117,6 @@ class Timer
     {
         if(empty(self::$_tasks))
         {
-            pcntl_alarm(0);
             return;
         }
         
@@ -167,7 +167,6 @@ class Timer
     public static function delAll()
     {
         self::$_tasks = array();
-        pcntl_alarm(0);
         if(self::$_event)
         {
             self::$_event->clearAllTimer();
