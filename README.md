@@ -1,13 +1,19 @@
 # workerman-for-win
 workerman-for-win
-## 运行
+
+## 环境要求
 (php>=5.3.3)
-双击start.bat运行(需要设置系统php环境变量)
+
+## 运行
+运行一个文件
+php your_file.php
+同时运行多个文件
+php your_file.php your_file2.php ...
 
 ## 与Linux多进程版本的区别
 1、单进程，也就是说count属性无效  
 2、由于php在win下无法fork进程，Applications/YourApp/start.php被拆成多个子启动项，如start_web.php   start_gateway.php等，每个文件自动启动一个进程运行  
-3、由于php在win下不支持信号，所以无法使用reload、status、restart、stop命令  
+3、由于php在win下不支持信号，所以无法使用reload、status、restart、stop命令，也没有start命令 
 
 ## 手册
 开发与Linux版本基本无差别，可以直接参考Linux版本手册  
