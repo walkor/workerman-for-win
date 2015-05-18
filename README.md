@@ -5,10 +5,11 @@ workerman-for-win
 (php>=5.3.3)
 
 ## 运行
-运行一个文件
-php your_file.php
-同时运行多个文件
-php your_file.php your_file2.php ...
+运行一个文件  
+php your_file.php  
+
+同时运行多个文件  
+php your_file.php your_file2.php ...  
 
 ## 与Linux多进程版本的区别
 1、单进程，也就是说count属性无效  
