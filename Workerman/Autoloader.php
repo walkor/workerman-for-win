@@ -56,6 +56,7 @@ class Autoloader
         {
             $class_file = WORKERMAN_ROOT_DIR . DIRECTORY_SEPARATOR . "$class_path.php";
         }
+        
         // 找到文件
         if(is_file($class_file))
         {
