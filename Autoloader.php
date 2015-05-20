@@ -44,6 +44,7 @@ class Autoloader
     {
         // 相对路径
         $class_path = str_replace('\\', DIRECTORY_SEPARATOR ,$name);
+        // 如果是Workerman命名空间，则在当前目录寻找类文件
         if(strpos($name, 'Workerman\\') === 0)
         {
             $class_file = __DIR__.substr($class_path, strlen('Workerman')).'.php';
@@ -55,7 +56,7 @@ class Autoloader
             {
                 $class_file = self::$_appInitPath . DIRECTORY_SEPARATOR . $class_path.'.php';
             }
-            // 文件不存在，则在workerman根目录中寻找
+            // 文件不存在，则在上一层目录寻找
             if(empty($class_file) || !is_file($class_file))
             {
                 $class_file = __DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR . "$class_path.php";
