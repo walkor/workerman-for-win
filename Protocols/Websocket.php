@@ -324,8 +324,10 @@ class Websocket implements \Workerman\Protocols\ProtocolInterface
             // 发送握手数据
             $connection->send($handshake_message, true);
             
+            // 握手后有数据要发送
             if(!empty($connection->tmpWebsocketData))
             {
+                $connection->send($connection->tmpWebsocketData, true);
                 $connection->tmpWebsocketData = '';
             }
             // blob or arraybuffer
