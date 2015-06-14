@@ -520,6 +520,7 @@ class Worker
             echo str_pad($worker->name, self::$_maxWorkerNameLength+2),str_pad($worker->getSocketName(), self::$_maxSocketNameLength+2), str_pad(' '.$worker->count, 9), " [OK] \n";;
         }
         echo "----------------------------------------------------------------\n";
+        echo "Press Ctrl-C to quit. Start success.\n";
     }
     
     /**
