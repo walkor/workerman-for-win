@@ -394,7 +394,8 @@ class Worker
             // win不支持同一个页面执初始化多个worker
             if(count(self::$_workers) > 1)
             {
-                echo "@@@multi workers init in one php file are not support@@@\r\n";
+                echo "@@@ Error: multi workers init in one php file are not support @@@\r\n";
+                echo "@@@ Please visit http://wiki.workerman.net/Multi_woker_for_win @@@\r\n";
             }
             elseif(count(self::$_workers) <= 0)
             {
