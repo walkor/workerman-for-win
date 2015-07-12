@@ -235,6 +235,13 @@ class Select implements EventInterface
             $write = $this->_writeFds;
             // 等待可读或者可写事件
             stream_select($read, $write, $e, 0, $this->_selectTimeout);
+            
+            // 尝试执行定时任务
+            if(!$this->_scheduler->isEmpty())
+            {
+                $this->tick();
+            }
+            
             // 这些描述符可读，执行对应描述符的读回调函数
             if($read)
             {
@@ -259,12 +266,6 @@ class Select implements EventInterface
                         call_user_func_array($this->_allEvents[$fd_key][self::EV_WRITE][0], array($this->_allEvents[$fd_key][self::EV_WRITE][1]));
                     }
                 }
-            }
-            
-            // 尝试执行定时任务
-            if(!$this->_scheduler->isEmpty())
-            {
-                $this->tick();
             }
         }
     }
