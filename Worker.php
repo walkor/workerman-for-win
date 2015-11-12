@@ -34,7 +34,7 @@ class Worker
      * 版本号
      * @var string
      */
-    const VERSION = '3.1.8';
+    const VERSION = '3.2.2';
     
     /**
      * 状态 启动中
@@ -80,6 +80,12 @@ class Worker
     const MAX_UDP_PACKEG_SIZE = 65535;
     
     /**
+     * worker id
+     * @var int
+     */
+    public $id = 0;
+    
+    /**
      * worker的名称，用于在运行status命令时标记进程
      * @var string
      */
@@ -102,6 +108,12 @@ class Worker
      * @var bool
      */
     public $reloadable = true;
+    
+    /**
+     * reuse port
+     * @var bool
+     */
+    public $reusePort = false;
     
     /**
      * 当worker进程启动时，如果设置了$onWorkerStart回调函数，则运行
