@@ -34,7 +34,7 @@ class Worker
      * 版本号
      * @var string
      */
-    const VERSION = '3.2.2';
+    const VERSION = '3.2.5';
     
     /**
      * 状态 启动中
@@ -165,6 +165,12 @@ class Worker
      * @var callback
      */
     public $onWorkerStop = null;
+    
+    /**
+     * 当收到reload命令时的回调函数
+     * @var callback
+     */
+    public $onWorkerReload = null;
     
     /**
      * 传输层协议
