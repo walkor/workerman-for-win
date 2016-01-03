@@ -463,7 +463,7 @@ class Worker
         $pipes = array();
        
         // 打开子进程
-        $process= proc_open("php $start_file -q", $descriptorspec, $pipes);
+        $process= proc_open("php \"$start_file\" -q", $descriptorspec, $pipes);
         
         // 打开stdout stderr 文件句柄
         $std_handler = fopen($std_file, 'a+');
