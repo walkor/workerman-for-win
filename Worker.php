@@ -195,7 +195,7 @@ class Worker
      * 当前worker实例初始化目录位置，用于设置应用自动加载的根目录
      * @var string
      */
-    protected $_appInitPath = '';
+    protected $_autoloadRootPath = '';
     
     /**
      * 是否以守护进程的方式运行。运行start时加上-d参数会自动以守护进程方式运行
@@ -604,7 +604,7 @@ class Worker
         
         // 获得实例化文件路径，用于自动加载设置根目录
         $backrace = debug_backtrace();
-        $this->_appInitPath = dirname($backrace[0]['file']);
+        $this->_autoloadRootPath = dirname($backrace[0]['file']);
         
         // 设置socket上下文
         if($socket_name)
@@ -628,7 +628,7 @@ class Worker
     public function listen()
     {
         // 设置自动加载根目录
-        Autoloader::setRootPath($this->_appInitPath);
+        Autoloader::setRootPath($this->_autoloadRootPath);
         
         if(!$this->_socketName)
         {
@@ -703,7 +703,7 @@ class Worker
     public function run()
     {
         // 设置自动加载根目录
-        Autoloader::setRootPath($this->_appInitPath);
+        Autoloader::setRootPath($this->_autoloadRootPath);
         
         // 则创建一个全局事件轮询
         if(extension_loaded('libevent'))
