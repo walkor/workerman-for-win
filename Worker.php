@@ -668,7 +668,7 @@ class Worker
         {
             $socket   = socket_import_stream($this->_mainSocket );
             @socket_set_option($socket, SOL_SOCKET, SO_KEEPALIVE, 1);
-            @socket_set_option($socket, SOL_SOCKET, TCP_NODELAY, 1);
+            @socket_set_option($socket, SOL_TCP, TCP_NODELAY, 1);
         }
         
         // 设置非阻塞
