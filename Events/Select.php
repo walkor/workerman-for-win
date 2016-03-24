@@ -168,7 +168,6 @@ class Select implements EventInterface
     {
         while(!$this->_scheduler->isEmpty())
         {
-            while (!$this->_scheduler->isEmpty()) {
             $scheduler_data       = $this->_scheduler->top();
             $timer_id             = $scheduler_data['data'];
             $next_run_time        = -$scheduler_data['priority'];
