@@ -168,45 +168,30 @@ class Select implements EventInterface
     {
         while(!$this->_scheduler->isEmpty())
         {
-            $scheduler_data = $this->_scheduler->top();
-            $timer_id = $scheduler_data['data'];
-            $next_run_time = -$scheduler_data['priority'];
-            $time_now = microtime(true);
-            if($time_now >= $next_run_time)
-            {
+            while (!$this->_scheduler->isEmpty()) {
+            $scheduler_data       = $this->_scheduler->top();
+            $timer_id             = $scheduler_data['data'];
+            $next_run_time        = -$scheduler_data['priority'];
+            $time_now             = microtime(true);
+            $this->_selectTimeout = ($next_run_time - $time_now) * 1000000;
+            if ($this->_selectTimeout <= 0) {
                 $this->_scheduler->extract();
-                
-                // 如果任务不存在，则是对应的定时器已经删除
-                if(!isset($this->_task[$timer_id]))
-                {
+                if (!isset($this->_task[$timer_id])) {
                     continue;
                 }
-                
-                // 任务数据[func, args, flag, timer_interval]
+                // [func, args, flag, timer_interval]
                 $task_data = $this->_task[$timer_id];
-                // 如果是持续的定时任务，再把任务加到定时队列
-                if($task_data[2] == self::EV_TIMER)
-                {
-                    $next_run_time = $time_now+$task_data[3];
+                if ($task_data[2] === self::EV_TIMER) {
+                    $next_run_time = $time_now + $task_data[3];
                     $this->_scheduler->insert($timer_id, -$next_run_time);
                 }
-                // 尝试执行任务
-                try
-                {
-                    call_user_func_array($task_data[0], $task_data[1]);
-                }
-                catch(\Exception $e)
-                {
-                    echo $e;
+                call_user_func_array($task_data[0], $task_data[1]);
+                if (isset($this->_task[$timer_id]) && $task_data[2] === self::EV_TIMER_ONCE) {
+                    $this->del($timer_id, self::EV_TIMER_ONCE);
                 }
                 continue;
             }
-            else
-            {
-                // 设定超时时间
-                $this->_selectTimeout = ($next_run_time - $time_now)*1000000;
-                return;
-            }
+            return;
         }
         $this->_selectTimeout = 100000000;
     }
