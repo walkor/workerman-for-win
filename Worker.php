@@ -34,7 +34,7 @@ class Worker
      * 版本号
      * @var string
      */
-    const VERSION = '3.2.5';
+    const VERSION = '3.3.2';
     
     /**
      * 状态 启动中
@@ -767,7 +767,7 @@ class Worker
         $new_socket = stream_socket_accept($socket, 0);
         
         // 惊群现象，忽略
-        if(false === $new_socket)
+        if(!$new_socket)
         {
             return;
         }
