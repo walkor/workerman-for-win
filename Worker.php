@@ -353,6 +353,10 @@ class Worker
      */
     public static function init()
     {
+        if(strpos(strtolower(PHP_OS), 'win') !== 0)
+        {
+            exit("workerman-for-win can not run in linux\n");
+        }
         $backtrace = debug_backtrace();
         self::$_startFile = $backtrace[count($backtrace)-1]['file'];
         // 没有设置日志文件，则生成一个默认值
