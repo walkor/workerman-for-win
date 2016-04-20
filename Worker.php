@@ -12,7 +12,8 @@
  * @license http://www.opensource.org/licenses/mit-license.php MIT License
  */
 namespace Workerman;
-ini_set('display_errors', 'on');
+
+require_once __DIR__ . '/Lib/Constants.php';
 
 use \Workerman\Events\Libevent;
 use \Workerman\Events\Select;
