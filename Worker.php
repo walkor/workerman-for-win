@@ -190,7 +190,7 @@ class Worker
      * 例如 new worker('http://0.0.0.0:8080');指定使用http协议
      * @var string
      */
-    protected $_protocol = '';
+    protected $protocol = '';
     
     /**
      * 当前worker实例初始化目录位置，用于设置应用自动加载的根目录
@@ -645,11 +645,11 @@ class Worker
         if($scheme != 'tcp' && $scheme != 'udp')
         {
             $scheme = ucfirst($scheme);
-            $this->_protocol = '\\Protocols\\'.$scheme;
-            if(!class_exists($this->_protocol))
+            $this->protocol = '\\Protocols\\'.$scheme;
+            if(!class_exists($this->protocol))
             {
-                $this->_protocol = "\\Workerman\\Protocols\\$scheme";
-                if(!class_exists($this->_protocol))
+                $this->protocol = "\\Workerman\\Protocols\\$scheme";
+                if(!class_exists($this->protocol))
                 {
                     throw new Exception("class \\Protocols\\$scheme not exist");
                 }
@@ -782,7 +782,7 @@ class Worker
         $connection = new TcpConnection($new_socket);
         $this->connections[$connection->id] = $connection;
         $connection->worker = $this;
-        $connection->protocol = $this->_protocol;
+        $connection->protocol = $this->protocol;
         $connection->onMessage = $this->onMessage;
         $connection->onClose = $this->onClose;
         $connection->onError = $this->onError;
@@ -819,9 +819,9 @@ class Worker
         $connection = new UdpConnection($socket, $remote_address);
         if($this->onMessage)
         {
-            if($this->_protocol)
+            if($this->protocol)
             {
-                $parser = $this->_protocol;
+                $parser = $this->protocol;
                 $recv_buffer = $parser::decode($recv_buffer, $connection);
             }
             ConnectionInterface::$statistics['total_request']++;
