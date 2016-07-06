@@ -768,38 +768,34 @@ class Worker
      */
     public function acceptConnection($socket)
     {
-        // 获得客户端连接
-        $new_socket = stream_socket_accept($socket, 0);
-        
-        // 惊群现象，忽略
-        if(!$new_socket)
-        {
+         // Accept a connection on server socket.
+        $new_socket = @stream_socket_accept($socket, 0, $remote_address);
+        // Thundering herd.
+        if (!$new_socket) {
             return;
         }
-        // 统计数据
-        ConnectionInterface::$statistics['connection_count']++;
-        // 初始化连接对象
-        $connection = new TcpConnection($new_socket);
+
+        // TcpConnection.
+        $connection                         = new TcpConnection($new_socket, $remote_address);
         $this->connections[$connection->id] = $connection;
-        $connection->worker = $this;
-        $connection->protocol = $this->protocol;
-        $connection->onMessage = $this->onMessage;
-        $connection->onClose = $this->onClose;
-        $connection->onError = $this->onError;
-        $connection->onBufferDrain = $this->onBufferDrain;
-        $connection->onBufferFull = $this->onBufferFull;
-        
-        // 如果有设置连接回调，则执行
-        if($this->onConnect)
-        {
-            try
-            {
+        $connection->worker                 = $this;
+        $connection->protocol               = $this->protocol;
+        $connection->onMessage              = $this->onMessage;
+        $connection->onClose                = $this->onClose;
+        $connection->onError                = $this->onError;
+        $connection->onBufferDrain          = $this->onBufferDrain;
+        $connection->onBufferFull           = $this->onBufferFull;
+
+        // Try to emit onConnect callback.
+        if ($this->onConnect) {
+            try {
                 call_user_func($this->onConnect, $connection);
-            }
-            catch(Exception $e)
-            {
-                ConnectionInterface::$statistics['throw_exception']++;
+            } catch (\Exception $e) {
                 self::log($e);
+                exit(250);
+            } catch (\Error $e) {
+                self::log($e);
+                exit(250);
             }
         }
     }
