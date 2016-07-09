@@ -585,7 +585,7 @@ class Worker
      * @param string $msg
      * @return void
      */
-    protected static function log($msg)
+    public static function log($msg)
     {
         $msg = $msg."\n";
         if(self::$_status === self::STATUS_STARTING || !self::$daemonize)
