@@ -110,6 +110,7 @@ class AsyncTcpConnection extends TcpConnection
         }
         // Add socket to global event loop waiting connection is successfully established or faild. 
         Worker::$globalEvent->add($this->_socket, EventInterface::EV_WRITE, array($this, 'checkConnection'));
+        Worker::$globalEvent->add($this->_socket, EventInterface::EV_EXCEPT, array($this, 'checkConnection'));
     }
 
     /**
@@ -152,6 +153,7 @@ class AsyncTcpConnection extends TcpConnection
      */
     public function checkConnection($socket)
     {
+        Worker::$globalEvent->del($socket, EventInterface::EV_EXCEPT);
         // Check socket state.
         if (stream_socket_get_name($socket, true)) {
             // Remove write listener.

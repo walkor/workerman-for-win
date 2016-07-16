@@ -38,6 +38,12 @@ class Select implements EventInterface
      * @var array
      */
     protected $_writeFds = array();
+
+    /**
+     * 监听这些描述符的带外事件
+     * @var array
+     */
+	protected $_exceptFds = array();
     
     /**
      * 任务调度器，最大堆
@@ -101,6 +107,11 @@ class Select implements EventInterface
                 $this->_allEvents[$fd_key][$flag] = array($func, $fd);
                 $this->_writeFds[$fd_key] = $fd;
                 break;
+            case self::EV_EXCEPT:
+                $fd_key = (int)$fd;
+                $this->_allEvents[$fd_key][$flag] = array($func, $fd);
+                $this->_exceptFds[$fd_key] = $fd;
+                break;
             case self::EV_SIGNAL:
                 throw new \Exception("not support EV_SIGNAL on Windows");
                 break;
@@ -144,6 +155,13 @@ class Select implements EventInterface
                 return true;
             case self::EV_WRITE:
                 unset($this->_allEvents[$fd_key][$flag], $this->_writeFds[$fd_key]);
+                if(empty($this->_allEvents[$fd_key]))
+                {
+                    unset($this->_allEvents[$fd_key]);
+                }
+                return true;
+            case self::EV_EXCEPT:
+                unset($this->_allEvents[$fd_key][$flag], $this->_exceptFds[$fd_key]);
                 if(empty($this->_allEvents[$fd_key]))
                 {
                     unset($this->_allEvents[$fd_key]);
@@ -217,9 +235,11 @@ class Select implements EventInterface
         {
             $read = $this->_readFds;
             $write = $this->_writeFds;
+			$except = $this->_writeFds;
+
             // 等待可读或者可写事件
-            stream_select($read, $write, $e, 0, $this->_selectTimeout);
-            
+            stream_select($read, $write, $except, 0, $this->_selectTimeout);
+
             // 尝试执行定时任务
             if(!$this->_scheduler->isEmpty())
             {
@@ -248,6 +268,19 @@ class Select implements EventInterface
                     if(isset($this->_allEvents[$fd_key][self::EV_WRITE]))
                     {
                         call_user_func_array($this->_allEvents[$fd_key][self::EV_WRITE][0], array($this->_allEvents[$fd_key][self::EV_WRITE][1]));
+                    }
+                }
+            }
+
+            // 这些描述符可写，执行对应描述符的写回调函数
+            if($except)
+            {
+                foreach($except as $fd)
+                {
+                    $fd_key = (int) $fd;
+                    if(isset($this->_allEvents[$fd_key][self::EV_EXCEPT]))
+                    {
+                        call_user_func_array($this->_allEvents[$fd_key][self::EV_EXCEPT][0], array($this->_allEvents[$fd_key][self::EV_EXCEPT][1]));
                     }
                 }
             }
