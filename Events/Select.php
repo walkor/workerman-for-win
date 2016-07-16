@@ -66,7 +66,7 @@ class Select implements EventInterface
     protected $_timerId = 1;
     
     /**
-     * select超时时间，单位：微妙
+     * select超时时间，单位：微秒
      * @var int
      */
     protected $_selectTimeout = 100000000;

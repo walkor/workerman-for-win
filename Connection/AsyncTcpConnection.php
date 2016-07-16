@@ -44,6 +44,13 @@ class AsyncTcpConnection extends TcpConnection
     protected $_remoteHost = '';
 
     /**
+     * Connect start time.
+     *
+     * @var string
+     */
+    protected $_connectStartTime = 0;
+
+    /**
      * PHP built-in protocols.
      *
      * @var array
@@ -97,8 +104,14 @@ class AsyncTcpConnection extends TcpConnection
         $this->maxSendBufferSize = self::$defaultMaxSendBufferSize;
     }
 
+    /**
+     * Do connect
+     *
+     * @return void 
+     */
     public function connect()
     {
+        $this->_connectStartTime = microtime(true);
         // Open socket connection asynchronously.
         $this->_socket = stream_socket_client("{$this->transport}://{$this->_remoteAddress}", $errno, $errstr, 0,
             STREAM_CLIENT_ASYNC_CONNECT);
@@ -189,7 +202,7 @@ class AsyncTcpConnection extends TcpConnection
             }
         } else {
             // Connection failed.
-            $this->emitError(WORKERMAN_CONNECT_FAIL, 'connect ' . $this->_remoteAddress . ' fail ');
+            $this->emitError(WORKERMAN_CONNECT_FAIL, 'connect ' . $this->_remoteAddress . ' fail after ' . round(microtime(true) - $this->_connectStartTime, 4) . ' seconds');
             $this->destroy();
             $this->onConnect = null;
         }
