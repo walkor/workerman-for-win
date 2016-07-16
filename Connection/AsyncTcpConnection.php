@@ -189,7 +189,7 @@ class AsyncTcpConnection extends TcpConnection
             }
         } else {
             // Connection failed.
-            $this->emitError(WORKERMAN_CONNECT_FAIL, 'connect fail');
+            $this->emitError(WORKERMAN_CONNECT_FAIL, 'connect ' . $this->_remoteAddress . ' fail ');
             $this->destroy();
             $this->onConnect = null;
         }
