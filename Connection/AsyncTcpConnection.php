@@ -111,7 +111,7 @@ class AsyncTcpConnection extends TcpConnection
      */
     public function connect()
     {
-        if ($this->_status !== self::STATUS_CLOSED && $this->_status !== self::STATUS_INITIAL) {
+        if ($this->_status !== self::STATUS_INITIAL && $this->_status !== self::STATUS_CLOSED && $this->_status !== self::STATUS_CLOSING) {
             return;
         }
         $this->_status = self::STATUS_CONNECTING;
@@ -122,7 +122,9 @@ class AsyncTcpConnection extends TcpConnection
         // If failed attempt to emit onError callback.
         if (!$this->_socket) {
             $this->emitError(WORKERMAN_CONNECT_FAIL, $errstr);
-            $this->destroy();
+            if ($this->_status === self::STATUS_CLOSING) {
+                $this->destroy();
+            }
             if ($this->_status === self::STATUS_CLOSED) {
                 $this->onConnect = null;
             }
@@ -152,6 +154,7 @@ class AsyncTcpConnection extends TcpConnection
      */
     protected function emitError($code, $msg)
     {
+        $this->_status = self::STATUS_CLOSING;
         if ($this->onError) {
             try {
                 call_user_func($this->onError, $this, $code, $msg);
@@ -210,7 +213,9 @@ class AsyncTcpConnection extends TcpConnection
         } else {
             // Connection failed.
             $this->emitError(WORKERMAN_CONNECT_FAIL, 'connect ' . $this->_remoteAddress . ' fail after ' . round(microtime(true) - $this->_connectStartTime, 4) . ' seconds');
-            $this->destroy();
+            if ($this->_status === self::STATUS_CLOSING) {
+                $this->destroy();
+            }
             if ($this->_status === self::STATUS_CLOSED) {
                 $this->onConnect = null;
             }
