@@ -34,7 +34,7 @@ class AsyncTcpConnection extends TcpConnection
      *
      * @var int
      */
-    protected $_status = self::STATUS_CONNECTING;
+    protected $_status = self::STATUS_INITIAL;
 
     /**
      * Remote host.
@@ -111,14 +111,21 @@ class AsyncTcpConnection extends TcpConnection
      */
     public function connect()
     {
+        if ($this->_status !== self::STATUS_CLOSED && $this->_status !== self::STATUS_INITIAL) {
+            return;
+        }
+        $this->_status = self::STATUS_CONNECTING;
         $this->_connectStartTime = microtime(true);
         // Open socket connection asynchronously.
         $this->_socket = stream_socket_client("{$this->transport}://{$this->_remoteAddress}", $errno, $errstr, 0,
             STREAM_CLIENT_ASYNC_CONNECT);
         // If failed attempt to emit onError callback.
         if (!$this->_socket) {
-            $this->_status = self::STATUS_CLOSED;
             $this->emitError(WORKERMAN_CONNECT_FAIL, $errstr);
+            $this->destroy();
+            if ($this->_status === self::STATUS_CLOSED) {
+                $this->onConnect = null;
+            }
             return;
         }
         // Add socket to global event loop waiting connection is successfully established or faild. 
@@ -204,7 +211,9 @@ class AsyncTcpConnection extends TcpConnection
             // Connection failed.
             $this->emitError(WORKERMAN_CONNECT_FAIL, 'connect ' . $this->_remoteAddress . ' fail after ' . round(microtime(true) - $this->_connectStartTime, 4) . ' seconds');
             $this->destroy();
-            $this->onConnect = null;
+            if ($this->_status === self::STATUS_CLOSED) {
+                $this->onConnect = null;
+            }
         }
     }
 }
