@@ -238,7 +238,7 @@ class Select implements EventInterface
 			$except = $this->_writeFds;
 
             // 等待可读或者可写事件
-            stream_select($read, $write, $except, 0, $this->_selectTimeout);
+            stream_select($read, $write, $except, 0, (int)($this->_selectTimeout.''));
 
             // 尝试执行定时任务
             if(!$this->_scheduler->isEmpty())
