@@ -104,10 +104,10 @@ class UdpConnection extends ConnectionInterface
      * @param mixed $data
      * @return bool
      */
-    public function close($data = null)
+    public function close($data = null, $raw = false)
     {
         if ($data !== null) {
-            $this->send($data);
+            $this->send($data, $raw);
         }
         return true;
     }

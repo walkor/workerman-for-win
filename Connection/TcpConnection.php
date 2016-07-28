@@ -228,7 +228,7 @@ class TcpConnection extends ConnectionInterface
      * Sends data on the connection.
      *
      * @param string $send_buffer
-     * @param bool   $raw
+     * @param bool  $raw
      * @return void|bool|null
      */
     public function send($send_buffer, $raw = false)
@@ -242,7 +242,7 @@ class TcpConnection extends ConnectionInterface
             }
         }
 
-        if ($this->_status === self::STATUS_CONNECTING || $this->_status === self::STATUS_INITIAL) {
+        if ($this->_status === self::STATUS_INITIAL || $this->_status === self::STATUS_CONNECTING) {
             $this->_sendBuffer .= $send_buffer;
             return null;
         } elseif ($this->_status === self::STATUS_CLOSING || $this->_status === self::STATUS_CLOSED) {
@@ -536,7 +536,7 @@ class TcpConnection extends ConnectionInterface
      * Close connection.
      *
      * @param mixed $data
-     * @param bool  $raw
+     * @param bool $raw
      * @return void
      */
     public function close($data = null, $raw = false)
