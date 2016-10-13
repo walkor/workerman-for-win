@@ -358,6 +358,10 @@ class Worker
         {
             exit("workerman-for-win can not run in linux\n");
         }
+        if (false !== strpos(ini_get('disable_functions'), 'proc_open'))
+        {
+            exit("\r\nWarning: proc_open() has been disabled for security reasons. \r\n\r\nSee http://wiki.workerman.net/Error5\r\n");
+        }
         $backtrace = debug_backtrace();
         self::$_startFile = $backtrace[count($backtrace)-1]['file'];
         // 没有设置日志文件，则生成一个默认值
