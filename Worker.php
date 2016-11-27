@@ -16,6 +16,8 @@ namespace Workerman;
 require_once __DIR__ . '/Lib/Constants.php';
 
 use \Workerman\Events\Libevent;
+use \Workerman\Events\Event;
+use \Workerman\Events\React;
 use \Workerman\Events\Select;
 use \Workerman\Events\EventInterface;
 use \Workerman\Connection\ConnectionInterface;
@@ -35,7 +37,7 @@ class Worker
      * 版本号
      * @var string
      */
-    const VERSION = '3.3.5';
+    const VERSION = '3.3.6';
     
     /**
      * 状态 启动中
@@ -526,6 +528,26 @@ class Worker
             }
         }
     }
+
+    /**
+     * Get all worker instances.
+     *
+     * @return array
+     */
+    public static function getAllWorkers()
+    {
+        return self::$_workers;
+    }
+
+    /**
+     * Get global event-loop instance.
+     *
+     * @return EventInterface
+     */
+    public static function getEventLoop()
+    {
+        return self::$globalEvent;
+    }
     
     /**
      * 展示启动界面
@@ -715,9 +737,17 @@ class Worker
         Autoloader::setRootPath($this->_autoloadRootPath);
         
         // 则创建一个全局事件轮询
-        if(extension_loaded('libevent'))
+        if (interface_exists('\React\EventLoop\LoopInterface'))
+        {
+            self::$globalEvent = new React();
+        }
+        elseif (extension_loaded('libevent'))
         {
             self::$globalEvent = new Libevent();
+        }
+        elseif (extension_loaded('event'))
+        {
+            self::$globalEvent = new Event();
         }
         else
         {
