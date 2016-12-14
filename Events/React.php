@@ -49,6 +49,7 @@ class React implements LoopInterface
      */
     public function add($fd, $flag, $func, $args = array())
     {
+        $args = (array)$args;
         switch ($flag) {
             case EventInterface::EV_READ:
                 return $this->_loop->addReadStream($fd, $func);
