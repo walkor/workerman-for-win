@@ -28,7 +28,9 @@ class StreamSelectLoop extends \React\EventLoop\StreamSelectLoop
      */
     public function addSignal($signal, $callback)
     {
-        pcntl_signal($signal, $callback);
+        if(PHP_EOL !== "\r\n") {
+            pcntl_signal($signal, $callback);
+        }
     }
 
     /**
@@ -38,6 +40,38 @@ class StreamSelectLoop extends \React\EventLoop\StreamSelectLoop
      */
     public function removeSignal($signal)
     {
-        pcntl_signal($signal, SIG_IGN);
+        if(PHP_EOL !== "\r\n") {
+            pcntl_signal($signal, SIG_IGN);
+        }
+    }
+
+    /**
+     * Emulate a stream_select() implementation that does not break when passed
+     * empty stream arrays.
+     *
+     * @param array        &$read   An array of read streams to select upon.
+     * @param array        &$write  An array of write streams to select upon.
+     * @param integer|null $timeout Activity timeout in microseconds, or null to wait forever.
+     *
+     * @return integer|false The total number of streams that are ready for read/write.
+     * Can return false if stream_select() is interrupted by a signal.
+     */
+    protected function streamSelect(array &$read, array &$write, $timeout)
+    {
+        if ($read || $write) {
+            $except = null;
+            // Calls signal handlers for pending signals
+            pcntl_signal_dispatch();
+            // suppress warnings that occur, when stream_select is interrupted by a signal
+            return @stream_select($read, $write, $except, $timeout === null ? null : 0, $timeout);
+        }
+
+        // Calls signal handlers for pending signals
+        if(PHP_EOL !== "\r\n") {
+            pcntl_signal_dispatch();
+        }
+        $timeout && usleep($timeout);
+
+        return 0;
     }
 }
