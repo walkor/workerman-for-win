@@ -237,6 +237,12 @@ class Worker
     public static $globalEvent = null;
     
     /**
+     * 主进程停止时触发的回调，Win系统下不起作用
+     * @var unknown_type
+     */
+    public static $onMasterStop = null;
+    
+    /**
      * 主进程pid
      * @var int
      */
