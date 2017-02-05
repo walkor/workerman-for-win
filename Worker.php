@@ -37,7 +37,7 @@ class Worker
      * 版本号
      * @var string
      */
-    const VERSION = '3.3.6';
+    const VERSION = '3.3.7';
     
     /**
      * 状态 启动中
@@ -335,6 +335,18 @@ class Worker
      * @var array
      */
     protected static $_startFiles = array();
+    
+    /**
+     * PHP built-in protocols.
+     *
+     * @var array
+     */
+    protected static $_builtinTransports = array(
+            'tcp'   => 'tcp',
+            'udp'   => 'udp',
+            'unix'  => 'unix',
+            'ssl'   => 'tcp'
+    );
     
     /**
      * 运行所有worker实例
@@ -664,63 +676,74 @@ class Worker
      */
     public function listen()
     {
-        // 设置自动加载根目录
-        Autoloader::setRootPath($this->_autoloadRootPath);
-        
-        if(!$this->_socketName)
-        {
+        if (!$this->_socketName || $this->_mainSocket) {
             return;
         }
-        // 获得应用层通讯协议以及监听的地址
+
+        // Autoload.
+        Autoloader::setRootPath($this->_autoloadRootPath);
+
+        // Get the application layer communication protocol and listening address.
         list($scheme, $address) = explode(':', $this->_socketName, 2);
-        // 如果有指定应用层协议，则检查对应的协议类是否存在
-        if($scheme != 'tcp' && $scheme != 'udp')
-        {
-            $scheme = ucfirst($scheme);
-            $this->protocol = '\\Protocols\\'.$scheme;
-            if(!class_exists($this->protocol))
-            {
-                $this->protocol = "\\Workerman\\Protocols\\$scheme";
-                if(!class_exists($this->protocol))
-                {
-                    throw new Exception("class \\Protocols\\$scheme not exist");
+        // Check application layer protocol class.
+        if (!isset(self::$_builtinTransports[$scheme])) {
+            if(class_exists($scheme)){
+                $this->protocol = $scheme;
+            } else {
+                $scheme         = ucfirst($scheme);
+                $this->protocol = '\\Protocols\\' . $scheme;
+                if (!class_exists($this->protocol)) {
+                    $this->protocol = "\\Workerman\\Protocols\\$scheme";
+                    if (!class_exists($this->protocol)) {
+                        throw new Exception("class \\Protocols\\$scheme not exist");
+                    }
                 }
             }
+            if (!isset(self::$_builtinTransports[$this->transport])) {
+                throw new \Exception('Bad worker->transport ' . var_export($this->transport, true));
+            }
+        } else {
+            $this->transport = $scheme;
         }
-        elseif($scheme === 'udp')
-        {
-            $this->transport = 'udp';
+
+        $local_socket = self::$_builtinTransports[$this->transport] . ":" . $address;
+
+        // Flag.
+        $flags  = $this->transport === 'udp' ? STREAM_SERVER_BIND : STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
+        $errno  = 0;
+        $errmsg = '';
+        // SO_REUSEPORT.
+        if ($this->reusePort) {
+            stream_context_set_option($this->_context, 'socket', 'so_reuseport', 1);
         }
-        
-        // flag
-        $flags =  $this->transport === 'udp' ? STREAM_SERVER_BIND : STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
-        $this->_mainSocket = stream_socket_server($this->transport.":".$address, $errno, $errmsg, $flags, $this->_context);
-        if(!$this->_mainSocket)
-        {
+
+        // Create an Internet or Unix domain server socket.
+        $this->_mainSocket = stream_socket_server($local_socket, $errno, $errmsg, $flags, $this->_context);
+        if (!$this->_mainSocket) {
             throw new Exception($errmsg);
         }
-        
-        // 尝试打开tcp的keepalive，关闭TCP Nagle算法
-        if(function_exists('socket_import_stream'))
-        {
-            $socket   = socket_import_stream($this->_mainSocket );
+
+        if ($this->transport === 'ssl') {
+            stream_socket_enable_crypto($this->_mainSocket, false);
+        }
+
+        // Try to open keepalive for tcp and disable Nagle algorithm.
+        if (function_exists('socket_import_stream') && self::$_builtinTransports[$this->transport] === 'tcp') {
+            $socket = socket_import_stream($this->_mainSocket);
             @socket_set_option($socket, SOL_SOCKET, SO_KEEPALIVE, 1);
             @socket_set_option($socket, SOL_TCP, TCP_NODELAY, 1);
         }
-        
-        // 设置非阻塞
+
+        // Non blocking.
         stream_set_blocking($this->_mainSocket, 0);
-        
-        // 放到全局事件轮询中监听_mainSocket可读事件（客户端连接事件）
-        if(self::$globalEvent)
-        {
-            if($this->transport !== 'udp')
-            {
+
+        // Register a listener to be notified when server socket is ready to read.
+        if (self::$globalEvent) {
+            if ($this->transport !== 'udp') {
                 self::$globalEvent->add($this->_mainSocket, EventInterface::EV_READ, array($this, 'acceptConnection'));
-            }
-            else
-            {
-                self::$globalEvent->add($this->_mainSocket,  EventInterface::EV_READ, array($this, 'acceptUdpConnection'));
+            } else {
+                self::$globalEvent->add($this->_mainSocket, EventInterface::EV_READ,
+                    array($this, 'acceptUdpConnection'));
             }
         }
     }
@@ -820,6 +843,7 @@ class Worker
         $this->connections[$connection->id] = $connection;
         $connection->worker                 = $this;
         $connection->protocol               = $this->protocol;
+        $connection->transport              = $this->transport;
         $connection->onMessage              = $this->onMessage;
         $connection->onClose                = $this->onClose;
         $connection->onError                = $this->onError;

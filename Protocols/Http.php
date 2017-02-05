@@ -22,6 +22,12 @@ use Workerman\Worker;
 class Http
 {
     /**
+      * The supported HTTP methods
+      * @var array
+      */
+    public static $methods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS');
+
+    /**
      * Check the integrity of the package.
      *
      * @param string        $recv_buffer
@@ -40,21 +46,34 @@ class Http
         }
 
         list($header,) = explode("\r\n\r\n", $recv_buffer, 2);
-        if (0 === strpos($recv_buffer, "POST")) {
-            // find Content-Length
-            $match = array();
-            if (preg_match("/\r\nContent-Length: ?(\d+)/i", $header, $match)) {
-                $content_length = $match[1];
-                return $content_length + strlen($header) + 4;
-            } else {
-                return 0;
-            }
-        } elseif (0 === strpos($recv_buffer, "GET")) {
-            return strlen($header) + 4;
-        } else {
+        $method = substr($header, 0, strpos($header, ' '));
+
+        if(in_array($method, static::$methods)) {
+            return static::getRequestSize($header, $method);
+        }else{
             $connection->send("HTTP/1.1 400 Bad Request\r\n\r\n", true);
             return 0;
         }
+    }
+
+    /**
+      * Get whole size of the request
+      * includes the request headers and request body.
+      * @param string $header The request headers
+      * @param string $method The request method
+      * @return integer
+      */
+    protected static function getRequestSize($header, $method)
+    {
+        if($method=='GET') {
+            return strlen($header) + 4;
+        }
+        $match = array();
+        if (preg_match("/\r\nContent-Length: ?(\d+)/i", $header, $match)) {
+            $content_length = isset($match[1]) ? $match[1] : 0;
+            return $content_length + strlen($header) + 4;
+        }
+        return 0;
     }
 
     /**
@@ -144,8 +163,16 @@ class Http
             } else {
                 parse_str($http_body, $_POST);
                 // $GLOBALS['HTTP_RAW_POST_DATA']
-                $GLOBALS['HTTP_RAW_POST_DATA'] = $http_body;
+                $GLOBALS['HTTP_RAW_REQUEST_DATA'] = $GLOBALS['HTTP_RAW_POST_DATA'] = $http_body;
             }
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+                $GLOBALS['HTTP_RAW_REQUEST_DATA'] = $http_body;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+                $GLOBALS['HTTP_RAW_REQUEST_DATA'] = $http_body;
         }
 
         // QUERY_STRING
@@ -307,8 +334,11 @@ class Http
         if (PHP_SAPI != 'cli') {
             return session_start();
         }
+
+        self::tryGcSessions();
+
         if (HttpCache::$instance->sessionStarted) {
-            echo "already sessionStarted\nn";
+            echo "already sessionStarted\n";
             return true;
         }
         HttpCache::$instance->sessionStarted = true;
@@ -433,6 +463,27 @@ class Http
             }
         }
     }
+
+    /**
+     * Try GC sessions.
+     *
+     * @return void
+     */
+    public static function tryGcSessions()
+    {
+        if (HttpCache::$sessionGcProbability <= 0 ||
+            HttpCache::$sessionGcDivisor     <= 0 ||
+            rand(1, HttpCache::$sessionGcDivisor) > HttpCache::$sessionGcProbability) {
+            return;
+        }
+
+        $time_now = time();
+        foreach(glob(HttpCache::$sessionPath.'/ses*') as $file) {
+            if(is_file($file) && $time_now - filemtime($file) > HttpCache::$sessionGcMaxLifeTime) {
+                unlink($file);
+            }
+        }
+    }
 }
 
 /**
@@ -489,11 +540,13 @@ class HttpCache
     /**
      * @var HttpCache
      */
-    public static $instance = null;
-
-    public static $header = array();
-    public static $sessionPath = '';
-    public static $sessionName = '';
+    public static $instance             = null;
+    public static $header               = array();
+    public static $sessionPath          = '';
+    public static $sessionName          = '';
+    public static $sessionGcProbability = 1;
+    public static $sessionGcDivisor     = 1000;
+    public static $sessionGcMaxLifeTime = 1440;
     public $sessionStarted = false;
     public $sessionFile = '';
 
@@ -501,9 +554,24 @@ class HttpCache
     {
         self::$sessionName = ini_get('session.name');
         self::$sessionPath = session_save_path();
-        if (!self::$sessionPath) {
+        if (!self::$sessionPath || strpos(self::$sessionPath, 'tcp://') === 0) {
             self::$sessionPath = sys_get_temp_dir();
         }
+
+        if ($gc_probability = ini_get('session.gc_probability')) {
+            self::$sessionGcProbability = $gc_probability;
+        }
+
+        if ($gc_divisor = ini_get('session.gc_divisor')) {
+            self::$sessionGcDivisor = $gc_divisor;
+        }
+
+        if ($gc_max_life_time = ini_get('session.gc_maxlifetime')) {
+            self::$sessionGcMaxLifeTime = $gc_max_life_time;
+        }
+
         @\session_start();
     }
 }
+
+HttpCache::init();
