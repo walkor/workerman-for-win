@@ -43,7 +43,7 @@ class Select implements EventInterface
      * 监听这些描述符的带外事件
      * @var array
      */
-	protected $_exceptFds = array();
+    protected $_exceptFds = array();
     
     /**
      * 任务调度器，最大堆

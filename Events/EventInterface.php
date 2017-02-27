@@ -30,10 +30,10 @@ interface EventInterface
     const EV_WRITE = 2;
 
     /**
-	 * Except event
-	 *
-	 * @var int
-	 */
+     * Except event
+     *
+     * @var int
+     */
 	const EV_EXCEPT = 3;
 
     /**
