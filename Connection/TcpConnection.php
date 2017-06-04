@@ -280,7 +280,7 @@ class TcpConnection extends ConnectionInterface
 
         // Attempt to send data directly.
         if ($this->_sendBuffer === '') {
-            $len = @fwrite($this->_socket, $send_buffer);
+            $len = @fwrite($this->_socket, $send_buffer, 8192);
             // send successful.
             if ($len === strlen($send_buffer)) {
                 return true;
@@ -403,10 +403,10 @@ class TcpConnection extends ConnectionInterface
                 try {
                     call_user_func($this->onSslHandshake, $this);
                 } catch (\Exception $e) {
-                    self::log($e);
+                    Worker::log($e);
                     exit(250);
                 } catch (\Error $e) {
-                    self::log($e);
+                    Worker::log($e);
                     exit(250);
                 }
             }
@@ -519,7 +519,7 @@ class TcpConnection extends ConnectionInterface
      */
     public function baseWrite()
     {
-        $len = @fwrite($this->_socket, $this->_sendBuffer);
+        $len = @fwrite($this->_socket, $this->_sendBuffer, 8192);
         if ($len === strlen($this->_sendBuffer)) {
             Worker::$globalEvent->del($this->_socket, EventInterface::EV_WRITE);
             $this->_sendBuffer = '';

@@ -34,7 +34,7 @@ interface EventInterface
      *
      * @var int
      */
-	const EV_EXCEPT = 3;
+    const EV_EXCEPT = 3;
 
     /**
      * Signal event.
@@ -90,4 +90,11 @@ interface EventInterface
      * @return void
      */
     public function loop();
+
+    /**
+     * Destroy loop.
+     *
+     * @return mixed
+     */
+    public function destroy();
 }
