@@ -124,6 +124,11 @@ class Select implements EventInterface
                 $this->_allEvents[$fd_key][$flag] = array($func, $fd);
                 $this->_writeFds[$fd_key]         = $fd;
                 break;
+            case self::EV_EXCEPT:
+                $fd_key = (int)$fd;
+                $this->_allEvents[$fd_key][$flag] = array($func, $fd);
+                $this->_exceptFds[$fd_key] = $fd;
+                break;
             case self::EV_SIGNAL:
                 // Windows not support signal.
                 if(DIRECTORY_SEPARATOR !== '/') {
@@ -250,7 +255,7 @@ class Select implements EventInterface
     {
         $e = null;
         while (1) {
-            if(DIRECTORY_SEPARATOR !== '/') {
+            if(DIRECTORY_SEPARATOR === '/') {
                 // Calls signal handlers for pending signals
                 pcntl_signal_dispatch();
             }
