@@ -747,6 +747,47 @@ class Worker
             }
         }
     }
+
+    /**
+     * Get event loop name.
+     *
+     * @return string
+     */
+    protected static function getEventLoopName()
+    {
+        if (self::$eventLoopClass) {
+            return self::$eventLoopClass;
+        }
+
+        $loop_name = '';
+        foreach (self::$_availableEventLoops as $name=>$class) {
+            if (extension_loaded($name)) {
+                $loop_name = $name;
+                break;
+            }
+        }
+
+        if ($loop_name) {
+            if (interface_exists('\React\EventLoop\LoopInterface')) {
+                switch ($loop_name) {
+                    case 'libevent':
+                        self::$eventLoopClass = '\Workerman\Events\React\LibEventLoop';
+                        break;
+                    case 'event':
+                        self::$eventLoopClass = '\Workerman\Events\React\ExtEventLoop';
+                        break;
+                    default :
+                        self::$eventLoopClass = '\Workerman\Events\React\StreamSelectLoop';
+                        break;
+                }
+            } else {
+                self::$eventLoopClass = self::$_availableEventLoops[$loop_name];
+            }
+        } else {
+            self::$eventLoopClass = interface_exists('\React\EventLoop\LoopInterface')? '\Workerman\Events\React\StreamSelectLoop':'\Workerman\Events\Select';
+        }
+        return self::$eventLoopClass;
+    }
     
     /**
      * 获得 socket name
@@ -764,24 +805,13 @@ class Worker
     {
         // 设置自动加载根目录
         Autoloader::setRootPath($this->_autoloadRootPath);
-        
-        // 则创建一个全局事件轮询
-        if (interface_exists('\React\EventLoop\LoopInterface'))
-        {
-            self::$globalEvent = new React();
+
+        // Create a global event loop.
+        if (!self::$globalEvent) {
+            $event_loop_class = self::getEventLoopName();
+            self::$globalEvent = new $event_loop_class;
         }
-        elseif (extension_loaded('libevent'))
-        {
-            self::$globalEvent = new Libevent();
-        }
-        elseif (extension_loaded('event'))
-        {
-            self::$globalEvent = new Event();
-        }
-        else
-        {
-            self::$globalEvent = new Select();
-        }
+
         // 监听_mainSocket上的可读事件（客户端连接事件）
         if($this->_socketName)
         {
