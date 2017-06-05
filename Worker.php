@@ -241,6 +241,12 @@ class Worker
      * @var unknown_type
      */
     public static $onMasterStop = null;
+
+    /**
+     * 事件轮询库类名
+     * @var string
+     */
+    public static $eventLoopClass = '';
     
     /**
      * 主进程pid
@@ -335,7 +341,17 @@ class Worker
      * @var array
      */
     protected static $_startFiles = array();
-    
+
+    /**
+     * Available event loops.
+     *
+     * @var array
+     */
+    protected static $_availableEventLoops = array(
+        'libevent' => '\Workerman\Events\Libevent',
+        'event'    => '\Workerman\Events\Event'
+    );
+
     /**
      * PHP built-in protocols.
      *
@@ -391,10 +407,6 @@ class Worker
         }
         // 标记状态为启动中
         self::$_status = self::STATUS_STARTING;
-        // 全局事件轮询库
-        self::$globalEvent = new Select();
-        // 
-        Timer::init(self::$globalEvent);
     }
     
     /**
