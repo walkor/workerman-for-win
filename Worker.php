@@ -37,7 +37,7 @@ class Worker
      * 版本号
      * @var string
      */
-    const VERSION = '3.4.2';
+    const VERSION = '3.4.20';
     
     /**
      * 状态 启动中
@@ -472,6 +472,8 @@ class Worker
         // 多个start文件则多进程打开
         elseif(count(self::$_startFiles) > 1)
         {
+            self::$globalEvent = new Select();
+            Timer::init(self::$globalEvent);
             foreach(self::$_startFiles as $start_file)
             {
                 self::openProcess($start_file);
