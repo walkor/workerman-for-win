@@ -407,6 +407,9 @@ class Worker
         }
         // 标记状态为启动中
         self::$_status = self::STATUS_STARTING;
+        
+        $event_loop_class = self::getEventLoopName();
+        self::$globalEvent = new $event_loop_class;
     }
     
     /**
@@ -482,7 +485,7 @@ class Worker
         // 没有start文件提示错误
         else
         {
-            exit("@@@no worker inited@@@\r\n");
+            //exit("@@@no worker inited@@@\r\n");
         }
     }
     
