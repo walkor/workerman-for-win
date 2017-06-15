@@ -410,6 +410,7 @@ class Worker
         
         $event_loop_class = self::getEventLoopName();
         self::$globalEvent = new $event_loop_class;
+        Timer::init(self::$globalEvent);
     }
     
     /**
