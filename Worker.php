@@ -482,7 +482,7 @@ class Worker
         // 没有start文件提示错误
         else
         {
-            echo "@@@no worker inited@@@\r\n";
+            exit("@@@no worker inited@@@\r\n");
         }
     }
     
