@@ -98,8 +98,7 @@ class Select implements EventInterface
         // Create a pipeline and put into the collection of the read to read the descriptor to avoid empty polling.
         $this->channel = stream_socket_pair(DIRECTORY_SEPARATOR === '/' ? STREAM_PF_UNIX : STREAM_PF_INET,
             STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-        if($this->channel)
-        {
+        if($this->channel) {
             stream_set_blocking($this->channel[0], 0);
             $this->_readFds[0] = $this->channel[0];
         }
@@ -140,11 +139,12 @@ class Select implements EventInterface
                 break;
             case self::EV_TIMER:
             case self::EV_TIMER_ONCE:
+                $timer_id = $this->_timerId++;
                 $run_time = microtime(true) + $fd;
-                $this->_scheduler->insert($this->_timerId, -$run_time);
-                $this->_eventTimer[$this->_timerId] = array($func, (array)$args, $flag, $fd);
+                $this->_scheduler->insert($timer_id, -$run_time);
+                $this->_eventTimer[$timer_id] = array($func, (array)$args, $flag, $fd);
                 $this->tick();
-                return $this->_timerId++;
+                return $timer_id;
         }
 
         return true;
@@ -295,14 +295,12 @@ class Select implements EventInterface
                 }
             }
 
-            if($except)
-            {
-                foreach($except as $fd)
-                {
+            if($except) {
+                foreach($except as $fd) {
                     $fd_key = (int) $fd;
-                    if(isset($this->_allEvents[$fd_key][self::EV_EXCEPT]))
-                    {
-                        call_user_func_array($this->_allEvents[$fd_key][self::EV_EXCEPT][0], array($this->_allEvents[$fd_key][self::EV_EXCEPT][1]));
+                    if(isset($this->_allEvents[$fd_key][self::EV_EXCEPT])) {
+                        call_user_func_array($this->_allEvents[$fd_key][self::EV_EXCEPT][0],
+                            array($this->_allEvents[$fd_key][self::EV_EXCEPT][1]));
                     }
                 }
             }
