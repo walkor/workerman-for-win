@@ -1,4 +1,4 @@
-**目前linux版本已经兼容windows，此版本不再维护**
+**https://github.com/walkor/workerman已经兼容windows，此版本不再维护**
 
 # workerman-for-win
 workerman-for-win
